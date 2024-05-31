@@ -1,0 +1,1 @@
+print("ty no nie wiem")
