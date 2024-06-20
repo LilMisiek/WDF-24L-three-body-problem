@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import math
 from matplotlib.animation import FuncAnimation
+from matplotlib.widgets import Slider, Button
 
 
 class Body:
@@ -70,42 +70,76 @@ class ThreeBodySystem:
         return np.array(positions)
 
 
-# Definicja początkowych warunków
-body1 = Body(200, [0, 0], [0, 0])
-body2 = Body(10, [-5, 0], [0, math.sqrt(40)])
-body3 = Body(1, [-5.5, 0], [0, math.sqrt(20)+math.sqrt(40)])
+# Ładne kółko i 2 ciałka w środku
+body1 = Body(1, [0.6661637520772179,-0.081921852656887], [0.84120297540307,0.029746212757039])
+body2 = Body(1, [-0.025192663684493022,0.45444857588251897], [0.142642469612081,-0.492315648524683])
+body3 = Body(1, [-0.10301329374224,-0.765806200083609], [-0.98384544501151,0.462569435774018])
+
+
 
 # Utworzenie układu trzech ciał
 system = ThreeBodySystem(body1, body2, body3)
 
 # Symulacja
-dt = 0.001
+dt = 0.005
 steps = 10000
 positions = system.integrate(dt, steps)
 
 # Animacja
 fig, ax = plt.subplots()
-ax.set_xlim(-10, 10)
-ax.set_ylim(-10, 10)
+plt.subplots_adjust(bottom=0.2)  # Adjust to make room for sliders and buttons
+ax.set_xlim(-2, 2)
+ax.set_ylim(-2, 2)
 
 line1, = ax.plot([], [], 'ro')
 line2, = ax.plot([], [], 'go')
 line3, = ax.plot([], [], 'bo')
+trail1, = ax.plot([], [], 'r-', alpha=0.5)
+trail2, = ax.plot([], [], 'g-', alpha=0.5)
+trail3, = ax.plot([], [], 'b-', alpha=0.5)
 
 
 def init():
     line1.set_data([], [])
     line2.set_data([], [])
     line3.set_data([], [])
-    return line1, line2, line3
+    trail1.set_data([], [])
+    trail2.set_data([], [])
+    trail3.set_data([], [])
+    return line1, line2, line3, trail1, trail2, trail3
 
 
 def update(frame):
     line1.set_data([positions[frame, 0, 0]], [positions[frame, 0, 1]])
     line2.set_data([positions[frame, 1, 0]], [positions[frame, 1, 1]])
     line3.set_data([positions[frame, 2, 0]], [positions[frame, 2, 1]])
-    return line1, line2, line3
+    trail1.set_data(positions[:frame, 0, 0], positions[:frame, 0, 1])
+    trail2.set_data(positions[:frame, 1, 0], positions[:frame, 1, 1])
+    trail3.set_data(positions[:frame, 2, 0], positions[:frame, 2, 1])
+    return line1, line2, line3, trail1, trail2, trail3
 
 
-ani = FuncAnimation(fig, update, frames=range(steps), init_func=init, interval=2, blit=True)
+
+
+# Button to start/pause the animation
+ax_start = plt.axes([0.8, 0.05, 0.1, 0.04])
+start_button = Button(ax=ax_start, label='Start/Pause')
+
+anim_running = True
+
+
+
+
+def on_start_button_clicked(event):
+    global anim_running
+    if anim_running:
+        ani.event_source.stop()
+    else:
+        ani.event_source.start()
+    anim_running = not anim_running
+
+
+start_button.on_clicked(on_start_button_clicked)
+
+ani = FuncAnimation(fig, update, frames=range(steps), init_func=init, interval=1, blit=True)
 plt.show()
