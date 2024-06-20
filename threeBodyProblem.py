@@ -3,13 +3,11 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Slider, Button
 
-
 class Body:
     def __init__(self, mass, position, velocity):
         self.mass = mass
         self.position = np.array(position, dtype='float64')
         self.velocity = np.array(velocity, dtype='float64')
-
 
 class ThreeBodySystem:
     def __init__(self, body1, body2, body3, G=1):
@@ -26,41 +24,24 @@ class ThreeBodySystem:
                     distance = np.linalg.norm(r)
                     if distance == 0:
                         continue  # Unikamy dzielenia przez zero
-                    acc += self.G * other_body.mass * r / distance ** 3
+                    acc += self.G * other_body.mass * r / distance**3
             accelerations.append(acc)
         return accelerations
 
     def step(self, dt):
         positions = np.array([body.position for body in self.bodies])
         velocities = np.array([body.velocity for body in self.bodies])
+        accelerations = self.compute_accelerations()
 
-        k1_v = dt * np.array(self.compute_accelerations())
-        k1_x = dt * velocities
-
+        # Aktualizacja pozycji
         for i, body in enumerate(self.bodies):
-            body.position += k1_x[i] / 2
-            body.velocity += k1_v[i] / 2
+            body.position += body.velocity * dt + 0.5 * accelerations[i] * dt**2
 
-        k2_v = dt * np.array(self.compute_accelerations())
-        k2_x = dt * (velocities + k1_v / 2)
+        new_accelerations = self.compute_accelerations()
 
+        # Aktualizacja prędkości
         for i, body in enumerate(self.bodies):
-            body.position += k2_x[i] / 2 - k1_x[i] / 2
-            body.velocity += k2_v[i] / 2 - k1_v[i] / 2
-
-        k3_v = dt * np.array(self.compute_accelerations())
-        k3_x = dt * (velocities + k2_v / 2)
-
-        for i, body in enumerate(self.bodies):
-            body.position += k3_x[i] - k2_x[i] / 2
-            body.velocity += k3_v[i] - k2_v[i] / 2
-
-        k4_v = dt * np.array(self.compute_accelerations())
-        k4_x = dt * (velocities + k3_v)
-
-        for i, body in enumerate(self.bodies):
-            body.position += (k1_x[i] + 2 * k2_x[i] + 2 * k3_x[i] + k4_x[i]) / 6 - k3_x[i]
-            body.velocity += (k1_v[i] + 2 * k2_v[i] + 2 * k3_v[i] + k4_v[i]) / 6 - k3_v[i]
+            body.velocity += 0.5 * (accelerations[i] + new_accelerations[i]) * dt
 
     def integrate(self, dt, steps):
         positions = []
@@ -69,20 +50,22 @@ class ThreeBodySystem:
             positions.append([body.position.copy() for body in self.bodies])
         return np.array(positions)
 
+# Cukierek
+# body1 = Body(1, [0.517216786720872,0.55610033157918], [0.107632564012758,0.681725256843756])
+# body2 = Body(1, [0.002573889407142,0.116484954113653], [-0.534918980283418,-0.854885322576851])
+# body3 = Body(1, [-0.20255534902211,-0.731794952123173], [0.427286416269208,0.173160065733631])
 
 # Ładne kółko i 2 ciałka w środku
 body1 = Body(1, [0.6661637520772179,-0.081921852656887], [0.84120297540307,0.029746212757039])
 body2 = Body(1, [-0.025192663684493022,0.45444857588251897], [0.142642469612081,-0.492315648524683])
 body3 = Body(1, [-0.10301329374224,-0.765806200083609], [-0.98384544501151,0.462569435774018])
 
-
-
 # Utworzenie układu trzech ciał
 system = ThreeBodySystem(body1, body2, body3)
 
 # Symulacja
-dt = 0.005
-steps = 10000
+dt = 0.002  # Umiarkowany krok czasowy dla lepszej równowagi między dokładnością a wydajnością
+steps = 20000
 positions = system.integrate(dt, steps)
 
 # Animacja
@@ -98,7 +81,6 @@ trail1, = ax.plot([], [], 'r-', alpha=0.5)
 trail2, = ax.plot([], [], 'g-', alpha=0.5)
 trail3, = ax.plot([], [], 'b-', alpha=0.5)
 
-
 def init():
     line1.set_data([], [])
     line2.set_data([], [])
@@ -107,7 +89,6 @@ def init():
     trail2.set_data([], [])
     trail3.set_data([], [])
     return line1, line2, line3, trail1, trail2, trail3
-
 
 def update(frame):
     line1.set_data([positions[frame, 0, 0]], [positions[frame, 0, 1]])
@@ -119,15 +100,11 @@ def update(frame):
     return line1, line2, line3, trail1, trail2, trail3
 
 
-
-
 # Button to start/pause the animation
 ax_start = plt.axes([0.8, 0.05, 0.1, 0.04])
 start_button = Button(ax=ax_start, label='Start/Pause')
 
 anim_running = True
-
-
 
 
 def on_start_button_clicked(event):
@@ -137,7 +114,6 @@ def on_start_button_clicked(event):
     else:
         ani.event_source.start()
     anim_running = not anim_running
-
 
 start_button.on_clicked(on_start_button_clicked)
 
